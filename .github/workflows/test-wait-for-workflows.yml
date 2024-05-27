@@ -10,13 +10,13 @@ jobs:
     if: always()
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha }}
 
       - name: Wait for workflows
         id: wait
-        uses: smartcontractkit/chainlink-github-actions/utils/wait-for-workflows@main
+        uses: RupertBarrow/chainlink-github-actions/utils/wait-for-workflows@3558da17c52c14a6adb83439dc8997f666e1c370
         with:
           max-timeout: "900"
           polling-interval: "30"
