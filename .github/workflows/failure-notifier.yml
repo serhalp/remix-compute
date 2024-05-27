@@ -41,10 +41,10 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            console.log(${{ toJSON(needs) }});
             const {owner, repo} = context.repo;
 
             // Get PR status, which is now settled
+            console.log('REPOS KEYS', Object.keys(github.repos));
             const { data: combinedStatus } = await github.repos.getCombinedStatusForRef({
               owner,
               repo,
