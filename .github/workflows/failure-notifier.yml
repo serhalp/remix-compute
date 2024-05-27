@@ -27,6 +27,7 @@ jobs:
           polling-interval: "30"
           github-token: ${{ secrets.GITHUB_TOKEN }}
   notify-on-failure:
+    name: Notify on failure
     needs: [waitForWorkflows]
     # Note that this doesn't imply success of the workflows themselves, just the waiting.
     if: needs.waitForWorkflows.result == 'success'
@@ -44,8 +45,7 @@ jobs:
             const {owner, repo} = context.repo;
 
             // Get PR status, which is now settled
-            console.log('REPOS KEYS', Object.keys(github.repos));
-            const { data: combinedStatus } = await github.repos.getCombinedStatusForRef({
+            const { data: combinedStatus } = await github.rest.repos.getCombinedStatusForRef({
               owner,
               repo,
               ref: context.payload.pull_request.head.sha
@@ -54,7 +54,7 @@ jobs:
             });
 
             // Get PR data (state, labels, URL)
-            const { data: pullRequests } = await github.repos.listPullRequests({
+            const { data: pullRequests } = await github.rest.repos.listPullRequests({
               owner,
               repo,
               head: `${owner}:${github.event.pull_request.head.sha}`
@@ -80,7 +80,7 @@ jobs:
           script: |
             const ISSUE_LABEL = "framework-bump-failure";
             const {owner, repo} = context.repo;
-            const issues = await github.issues.listForRepo({
+            const issues = await github.rest.issues.listForRepo({
               owner,
               repo,
               state: "open",
@@ -90,7 +90,7 @@ jobs:
               console.log(`Open issue already exists: ${issues[0].html_url}`);
               return;
             }
-            const issue = await github.issues.create({
+            const issue = await github.rest.issues.create({
               owner,
               repo,
               title: "Possible regression with new framework release",
