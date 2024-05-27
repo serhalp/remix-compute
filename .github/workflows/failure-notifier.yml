@@ -55,7 +55,7 @@ jobs:
             });
 
             // Get PR state and labels
-            const { data: pullRequests } = await github.rest.pulls.listPullRequests({
+            const { data: pullRequests } = await github.rest.pulls.list({
               owner,
               repo,
               head: `${owner}:${sha}`
