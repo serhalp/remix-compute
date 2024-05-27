@@ -63,8 +63,8 @@ jobs:
             console.log({
               owner,
               repo,
-              head: `${owner}:${sha}`
-              pullRequests,
+              head: `${owner}:${sha}`,
+              pullRequests
             });
             const pullRequest = pullRequests?.[0] ?? null;
             if (pullRequest == null) {
