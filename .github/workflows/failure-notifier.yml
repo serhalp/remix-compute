@@ -3,14 +3,10 @@
 
 name: Notify on Remix bump failures
 
-on:
-  check_suite:
-    types:
-      - completed
+on: status
 jobs:
   notify-on-failure:
-    if: >-
-      (github.event.check_suite.conclusion == 'failure' || github.event.check_suite.conclusion == 'timed_out')
+    if: github.event.state == 'error' || github.event.state == 'failure'
     runs-on: ubuntu-latest
     permissions:
       issues: write
@@ -23,22 +19,24 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: |
-            // See `renovate.json5` at project root.
-            const requiredLabel = "bump-framework-in-fixtures";
-            const pullRequest = github.event.check_suite.pull_requests[0];
-            if (!pullRequest) {
+            const {owner, repo} = context.repo;
+            const { data: pullRequests } = await github.repos.listPullRequests({
+              owner,
+              repo,
+              state: 'open',
+              head: `${owner}:${github.event.sha}`
+            });
+            const pullRequest = pullRequests?.[0] ?? null;
+            if (pullRequest == null) {
               core.setOutput("label_exists", "false");
               return;
             }
 
-            const { data: labels } = await github.issues.listLabelsOnIssue({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: pullRequest.number,
-            });
-
-            const labelExists = labels.some(label => label.name === requiredLabel);
+            // See `renovate.json5` at project root.
+            const requiredLabel = "bump-framework-in-fixtures";
+            const labelExists = pullRequest.labels.some(label => label.name === requiredLabel);
             core.setOutput("label_exists", labelExists ? "true" : "false");
+            core.setOutput("pr_url", pullRequest.url);
 
       - name: Create issue on failure
         if: ${{ steps.check_label.outputs.label_exists == 'true' }}
@@ -61,7 +59,7 @@ jobs:
               repo: context.repo.repo,
               title: "Possible regression with new framework release",
               labels: ISSUE_LABEL,
-              body: `A framework release bump in test fixtures has failed. Check ${github.event.check_suite.pull_requests[0].url}.`
+              body: `A framework release bump in test fixtures has failed. Check ${steps.check_label.outputs.pr_url}.`
             });
 
             console.log(`Created issue: ${issue.data.html_url}`);
