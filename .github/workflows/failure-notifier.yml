@@ -43,21 +43,22 @@ jobs:
         with:
           script: |
             const {owner, repo} = context.repo;
+            const sha = context.payload.pull_request.head.sha;
 
             // Get PR status, which is now settled
             const { data: combinedStatus } = await github.rest.repos.getCombinedStatusForRef({
               owner,
               repo,
-              ref: github.event.pull_request.head.sha
+              ref: sha
               // Don't filter on `state` here so we can gracefuly handle an "expected" race
               // condition (PR closed between trigger and query) but still throw on unexpected errors.
             });
 
-            // Get PR data (state, labels, URL)
+            // Get PR state and labels
             const { data: pullRequests } = await github.rest.repos.listPullRequests({
               owner,
               repo,
-              head: `${owner}:${github.event.pull_request.head.sha}`
+              head: `${owner}:${sha}`
             });
             const pullRequest = pullRequests?.[0] ?? null;
             if (pullRequest == null) {
@@ -72,7 +73,6 @@ jobs:
             const prHasRequiredLabel = pullRequest.labels.some(label => label.name === REQUIRED_LABEL);
             const shouldSendNotification = prIsOpen && prHasRequiredLabel;
             core.setOutput("should_send_notif", shouldSendNotification ? "true" : "false");
-            core.setOutput("pr_url", pullRequest.url);
       - name: Create issue on failure
         if: ${{ steps.check_label.outputs.should_send_notif == 'true' }}
         uses: actions/github-script@v7
@@ -90,11 +90,12 @@ jobs:
               console.log(`Open issue already exists: ${issues[0].html_url}`);
               return;
             }
+            const prUrl = context.payload.pull_request.html_url;
             const issue = await github.rest.issues.create({
               owner,
               repo,
               title: "Possible regression with new framework release",
               labels: ISSUE_LABEL,
-              body: `A framework release bump in test fixtures has failed. Check ${steps.check_label.outputs.pr_url}.`
+              body: `A framework release bump in test fixtures has failed. Check ${prUrl}.`
             });
             console.log(`Created issue: ${issue.data.html_url}`);
