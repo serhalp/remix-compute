@@ -1,8 +1,0 @@
-on:
-  workflow_run:
-    # workflows: []
-    types: [completed]
-    runs-on: ubuntu-latest
-    steps:
-      - name: do-something
-        run: echo "Hello World!"
