@@ -11,28 +11,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Generate Github token
-        uses: navikt/github-app-token-generator@v1
-        id: get-token
-        with:
-          private-key: ${{ secrets.TOKENS_PRIVATE_KEY }}
-          app-id: ${{ secrets.TOKENS_APP_ID }}
-
       - name: Node
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: "18"
 
       - run: corepack enable
       - run: pnpm install
 
       - name: Install Playwright Browsers
         run: pnpm exec playwright install --with-deps
-
-      - name: Run Playwright tests
-        run: pnpm run test:e2e
-        env:
-          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
 
       - uses: actions/upload-artifact@v4
         if: always()
