@@ -3,50 +3,86 @@
 
 name: Notify on Remix bump failures
 
-on: status
+on:
+  pull_request:
+    types: [opened, synchronize, labeled, unlabeled]
 jobs:
+  waitForWorkflows:
+    name: Wait for workflows
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Wait for workflows
+        id: wait
+        # XXX
+        # uses: smartcontractkit/chainlink-github-actions/utils/wait-for-workflows@main
+        uses: RupertBarrow/chainlink-github-actions/utils/wait-for-workflows@3558da17c52c14a6adb83439dc8997f666e1c370
+        with:
+          max-timeout: "900"
+          polling-interval: "30"
+          github-token: ${{ secrets.GITHUB_TOKEN }}
   notify-on-failure:
-    if: github.event.state == 'error' || github.event.state == 'failure'
+    needs: [waitForWorkflows]
+    # Note that this doesn't imply success of the workflows themselves, just the waiting.
+    if: needs.waitForWorkflows.result == 'success'
     runs-on: ubuntu-latest
     permissions:
       issues: write
     steps:
       - name: Check out the repository
-        uses: actions/checkout@v2
-
-      - name: Check for required label
+        uses: actions/checkout@v4
+      - name: Check conditions for failure notification
         id: check_label
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         with:
           script: |
+            console.log(${{ toJSON(needs) }});
             const {owner, repo} = context.repo;
+
+            // Get PR status, which is now settled
+            const { data: combinedStatus } = await github.repos.getCombinedStatusForRef({
+              owner,
+              repo,
+              ref: context.payload.pull_request.head.sha
+              // Don't filter on `state` here so we can gracefuly handle an "expected" race
+              // condition (PR closed between trigger and query) but still throw on unexpected errors.
+            });
+
+            // Get PR data (state, labels, URL)
             const { data: pullRequests } = await github.repos.listPullRequests({
               owner,
               repo,
-              state: 'open',
-              head: `${owner}:${github.event.sha}`
+              head: `${owner}:${github.event.pull_request.head.sha}`
             });
             const pullRequest = pullRequests?.[0] ?? null;
             if (pullRequest == null) {
-              core.setOutput("label_exists", "false");
+              core.setFailed("Aborting - cannot find PR corresponding to event trigger");
               return;
             }
 
+            const prIsOpen = pullRequest.state === "open";
+            const prDidFail = combinedStatus.state === "failure";
             // See `renovate.json5` at project root.
-            const requiredLabel = "bump-framework-in-fixtures";
-            const labelExists = pullRequest.labels.some(label => label.name === requiredLabel);
-            core.setOutput("label_exists", labelExists ? "true" : "false");
+            const REQUIRED_LABEL = "bump-framework-in-fixtures";
+            const prHasRequiredLabel = pullRequest.labels.some(label => label.name === REQUIRED_LABEL);
+            const shouldSendNotification = prIsOpen && prHasRequiredLabel;
+            core.setOutput("should_send_notif", shouldSendNotification ? "true" : "false");
             core.setOutput("pr_url", pullRequest.url);
-
       - name: Create issue on failure
-        if: ${{ steps.check_label.outputs.label_exists == 'true' }}
-        uses: actions/github-script@v6
+        if: ${{ steps.check_label.outputs.should_send_notif == 'true' }}
+        uses: actions/github-script@v7
         with:
           script: |
             const ISSUE_LABEL = "framework-bump-failure";
+            const {owner, repo} = context.repo;
             const issues = await github.issues.listForRepo({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
+              owner,
+              repo,
               state: "open",
               labels: ISSUE_LABEL
             });
@@ -55,11 +91,10 @@ jobs:
               return;
             }
             const issue = await github.issues.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
+              owner,
+              repo,
               title: "Possible regression with new framework release",
               labels: ISSUE_LABEL,
               body: `A framework release bump in test fixtures has failed. Check ${steps.check_label.outputs.pr_url}.`
             });
-
             console.log(`Created issue: ${issue.data.html_url}`);
