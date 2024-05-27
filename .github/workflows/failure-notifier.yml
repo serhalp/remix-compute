@@ -48,7 +48,7 @@ jobs:
             const { data: combinedStatus } = await github.rest.repos.getCombinedStatusForRef({
               owner,
               repo,
-              ref: context.payload.pull_request.head.sha
+              ref: github.event.pull_request.head.sha
               // Don't filter on `state` here so we can gracefuly handle an "expected" race
               // condition (PR closed between trigger and query) but still throw on unexpected errors.
             });
