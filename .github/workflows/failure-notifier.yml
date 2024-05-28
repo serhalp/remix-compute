@@ -92,7 +92,7 @@ jobs:
           script: |
             const ISSUE_LABEL = "framework-bump-failure";
             const { owner, repo } = context.repo;
-            const issues = await github.rest.issues.listForRepo({
+            const {data: issues} = await github.rest.issues.listForRepo({
               owner,
               repo,
               state: "open",
@@ -103,11 +103,11 @@ jobs:
               return;
             }
             const prUrl = context.payload.pull_request.html_url;
-            const issue = await github.rest.issues.create({
+            const {data: issue} = await github.rest.issues.create({
               owner,
               repo,
               title: "Possible regression with new framework release",
               labels: [ISSUE_LABEL],
               body: `A framework release bump in test fixtures has failed. Check ${prUrl}.`
             });
-            console.log(`Created issue: ${issue.data.html_url}`);
+            console.log(`Created issue: ${issue.html_url}`);
