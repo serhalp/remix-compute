@@ -73,7 +73,7 @@ jobs:
             // See `renovate.json5` at project root.
             const REQUIRED_LABEL = "bump-framework-in-fixtures";
             const prHasRequiredLabel = pullRequest.labels.some(label => label.name === REQUIRED_LABEL);
-            const shouldSendNotification = prIsOpen && prHasRequiredLabel;
+            const shouldSendNotification = prIsOpen && prDidFail && prHasRequiredLabel;
             console.log({
               checkSuites,
               pullRequest,
