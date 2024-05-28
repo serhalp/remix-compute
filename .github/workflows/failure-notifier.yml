@@ -59,7 +59,7 @@ jobs:
             const { data: pullRequest } = await github.rest.pulls.get({
               owner,
               repo,
-              number: prNumber,
+              pull_number: prNumber,
             });
             console.log({
               combinedStatus,
