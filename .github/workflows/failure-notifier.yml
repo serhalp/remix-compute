@@ -51,7 +51,6 @@ jobs:
               owner,
               repo,
               ref: sha
-              // Don't filter on `state` here so we can gracefuly handle an "expected" race
               // condition (PR closed between trigger and query) but still throw on unexpected errors.
             });
 
@@ -60,6 +59,7 @@ jobs:
               owner,
               repo,
               pull_number: prNumber,
+              // Don't filter on `state` here so we can gracefuly handle an "expected" race
             });
             if (pullRequest == null) {
               core.setFailed("Aborting - cannot find PR corresponding to event trigger");
@@ -67,6 +67,8 @@ jobs:
             }
 
             const prIsOpen = pullRequest.state === "open";
+            // NOTE: Technically, we should query both Check Suites and Commit Statuses.
+            // We're assuming here that this repo exclusively uses the Checks API.
             const prDidFail = checkSuites.some(({conclusion}) =>
               conclusion === "failure" || conclusion === "timed_out"
             );
@@ -94,7 +96,7 @@ jobs:
               owner,
               repo,
               state: "open",
-              labels: ISSUE_LABEL
+              labels: [ISSUE_LABEL]
             });
             if (issues.length > 0) {
               console.log(`Open issue already exists: ${issues[0].html_url}`);
@@ -105,7 +107,7 @@ jobs:
               owner,
               repo,
               title: "Possible regression with new framework release",
-              labels: ISSUE_LABEL,
+              labels: [ISSUE_LABEL],
               body: `A framework release bump in test fixtures has failed. Check ${prUrl}.`
             });
             console.log(`Created issue: ${issue.data.html_url}`);
