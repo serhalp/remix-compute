@@ -44,6 +44,7 @@ jobs:
           script: |
             const {owner, repo} = context.repo;
             const sha = context.payload.pull_request.head.sha;
+            const prNumber = context.payload.pull_request.number;
 
             // Get PR status, which is now settled
             const { data: combinedStatus } = await github.rest.repos.getCombinedStatusForRef({
@@ -54,19 +55,16 @@ jobs:
               // condition (PR closed between trigger and query) but still throw on unexpected errors.
             });
 
-            // Get PR state and labels
-            const { data: pullRequests } = await github.rest.pulls.list({
+            // Get current PR state and labels
+            const { data: pullRequest } = await github.rest.pulls.get({
               owner,
               repo,
-              head: `${owner}:${sha}`
+              number: prNumber,
             });
             console.log({
-              owner,
-              repo,
-              head: `${owner}:${sha}`,
-              pullRequests
+              combinedStatus,
+              pullRequest
             });
-            const pullRequest = pullRequests?.[0] ?? null;
             if (pullRequest == null) {
               core.setFailed("Aborting - cannot find PR corresponding to event trigger");
               return;
