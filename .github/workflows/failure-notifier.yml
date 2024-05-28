@@ -61,10 +61,6 @@ jobs:
               repo,
               pull_number: prNumber,
             });
-            console.log({
-              combinedStatus,
-              pullRequest
-            });
             if (pullRequest == null) {
               core.setFailed("Aborting - cannot find PR corresponding to event trigger");
               return;
@@ -76,6 +72,14 @@ jobs:
             const REQUIRED_LABEL = "bump-framework-in-fixtures";
             const prHasRequiredLabel = pullRequest.labels.some(label => label.name === REQUIRED_LABEL);
             const shouldSendNotification = prIsOpen && prHasRequiredLabel;
+            console.log({
+              combinedStatus,
+              pullRequest,
+              prIsOpen,
+              prDidFail,
+              prHasRequiredLabel,
+              shouldSendNotification
+            });
             core.setOutput("should_send_notif", shouldSendNotification ? "true" : "false");
       - name: Create issue on failure
         if: ${{ steps.check_label.outputs.should_send_notif == 'true' }}
