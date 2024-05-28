@@ -42,12 +42,12 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const {owner, repo} = context.repo;
+            const { owner, repo } = context.repo;
             const sha = context.payload.pull_request.head.sha;
             const prNumber = context.payload.pull_request.number;
 
             // Get PR status, which is now settled
-            const { data: checkSuites } = await github.rest.checks.listSuitesForRef({
+            const { data: {check_suites: checkSuites} } = await github.rest.checks.listSuitesForRef({
               owner,
               repo,
               ref: sha
@@ -89,7 +89,7 @@ jobs:
         with:
           script: |
             const ISSUE_LABEL = "framework-bump-failure";
-            const {owner, repo} = context.repo;
+            const { owner, repo } = context.repo;
             const issues = await github.rest.issues.listForRepo({
               owner,
               repo,
