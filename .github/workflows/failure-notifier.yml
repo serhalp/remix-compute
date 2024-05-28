@@ -47,7 +47,7 @@ jobs:
             const prNumber = context.payload.pull_request.number;
 
             // Get PR status, which is now settled
-            const { data: combinedStatus } = await github.rest.repos.getCombinedStatusForRef({
+            const { data: checkSuites } = await github.rest.checks.listSuitesForRef({
               owner,
               repo,
               ref: sha
@@ -67,13 +67,15 @@ jobs:
             }
 
             const prIsOpen = pullRequest.state === "open";
-            const prDidFail = combinedStatus.state === "failure";
+            const prDidFail = checkSuites.some(({conclusion}) =>
+              conclusion === "failure" || conclusion === "timed_out"
+            );
             // See `renovate.json5` at project root.
             const REQUIRED_LABEL = "bump-framework-in-fixtures";
             const prHasRequiredLabel = pullRequest.labels.some(label => label.name === REQUIRED_LABEL);
             const shouldSendNotification = prIsOpen && prHasRequiredLabel;
             console.log({
-              combinedStatus,
+              checkSuites,
               pullRequest,
               prIsOpen,
               prDidFail,
