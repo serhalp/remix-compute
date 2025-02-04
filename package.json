@@ -28,7 +28,7 @@
     "npm-run-all2": "^6.0.0",
     "p-limit": "^5.0.0",
     "typescript": "^5.0.0",
-    "vitest": "^1.0.0"
+    "vitest": "^1.6.1"
   },
   "dependencies": {
     "@netlify/edge-functions": "^2.8.1",
